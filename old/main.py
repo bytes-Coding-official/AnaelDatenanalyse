@@ -69,7 +69,7 @@ dfB = dfB[df.columns]
 # Staple die DataFrames zeilenweise
 result = pandas.concat([df, dfB]).sort_index(kind="merge").reset_index(drop=True)
 print(result)
-
+dfB.loc()
 # It imports the pandas library, a widely used data manipulation and analysis tool in Python.
 # It reads two CSV files ('tabelle_a.csv' and 'b2_contract.csv') into pandas DataFrames df and dfB respectively, with no header (i.e., column names are not provided in the CSV file).
 # Then, the code iterates over each column of the df DataFrame. If the column does not exist in the dfB DataFrame, it adds that column to dfB with a value of None for every row. Essentially, this looks to harmonize the DataFrames so they have identical column structure.
