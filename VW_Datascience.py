@@ -128,4 +128,16 @@ df_d['D12A'] = np.where(
     0.00
 )
 
+#NICHT VEKTORWEISE SONDERN ZEILENWEISE
+def calculate_d12a(row):
+    hw1 = row['D3'] - row['D10'] + row['D14A'] - max(row['D6'], row['D9'], row['D11'])
+    max_wert_d12a = row['A6'] * row['C5'] - (row['D6'] + row['D9'])
+
+    if row['A3'] in ['10', '20'] and hw1 <= max_wert_d12a and hw1 > 0:
+        return hw1
+    else:
+        return 0.00
+
+df_d['D12A'] = df.apply(calculate_d12a, axis=1)
+
 print(df_a.info())
