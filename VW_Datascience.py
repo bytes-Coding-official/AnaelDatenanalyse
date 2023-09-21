@@ -11,6 +11,13 @@ df_c = pd.read_csv('C.csv', sep=',', header=0)
 df_d = pd.read_csv('D.csv', sep=',', header=0)
 df_e = pd.read_csv('E.csv', sep=',', header=0)
 
+
+
+
+
+
+
+
 #in spalte D1 in D muss immer die Konstante "D" stehen
 df_d['D1'] = 'D'
 
@@ -20,7 +27,7 @@ df_d['D2'] = df_b['B2']
 #Der Wert in D3 ist es der Wert aus C19 (reihe pro reihe)
 df_d['D3'] = df_c['C19']
 
-#D4 =
+
 
 # Bedingung 1
 bedingung_a = df_a['A3'].isin(['01', '10'])
@@ -247,5 +254,48 @@ df_d['D15'] = np.where(
     df_c[bedingung_c23 & bedingung_kreditorisch]['C19'].sum(),
     0.00
 )
+####################################################################
+df_d['E1'] = 'E'
+#E2 frei lassen
+#E3 Summe der Werte aus D3
+df_d['E3'] = df_d['D3'].sum()
+#E4 Summe der Werte aus D4
+df_d['E4'] = df_d['D4'].sum()
+#E5 Summe der Werte aus D5
+df_d['E5'] = df_d['D5'].sum()
+#E6 Summe der Werte aus D6
+df_d['E6'] = df_d['D6'].sum()
+#E7 Summe der Werte aus D7
+df_d['E7'] = df_d['D7'].sum()
+#E8 Summe der Werte aus D8
+df_d['E8'] = df_d['D8'].sum()
+#E9 Summe der Werte aus D9
+df_d['E9'] = df_d['D9'].sum()
+#E10 Summe der Werte aus D10
+df_d['E10'] = df_d['D10'].sum()
+#E11 Summe der Werte aus D11
+df_d['E11'] = df_d['D11'].sum()
+#E12A Summe der Werte aus D12A
+df_d['E12A'] = df_d['D12A'].sum()
+#E12B Summe der Werte aus D12B
+df_d['E12B'] = df_d['D12B'].sum()
+#E12C Summe der Werte aus D12C
+df_d['E12C'] = df_d['D12C'].sum()
+#E13 Summe der Werte aus D12
+df_d['E13'] = df_d['D13'].sum()
+#E14 Summe der Werte aus D14
+df_d['E14'] = df_d['D14A'].sum()
+#E15 Summe der Werte aus D15
+df_d['E15'] = df_d['D15'].sum()
 
-print(df_a.info())
+
+
+#S A1  A2  A3  A4  A5  B1A  B1B  B1C  B1D  C1A  C1B ... (weitere Spalten)
+# 0  ax  ay  az  a1  a2  NaN  NaN  NaN  NaN  NaN  NaN ...
+# 1  NaN NaN NaN NaN NaN  bx1  by1  bz1  b11  NaN  NaN ...
+# 2  NaN NaN NaN NaN NaN  NaN  NaN  NaN  NaN  cx1  cy1 ...
+# 3  NaN NaN NaN NaN NaN  NaN  NaN  NaN  NaN  cx2  cy2 ...
+# ... (andere Zeilen, die zu B1A passen)
+# n  NaN NaN NaN NaN NaN  bx2  by2  bz2  b21  NaN  NaN ...
+# n+1 NaN NaN NaN NaN NaN  NaN  NaN  NaN  NaN  cx3  cy3 ...
+# ... (andere Zeilen, die zu B2A passen)
