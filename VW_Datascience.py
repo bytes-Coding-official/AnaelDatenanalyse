@@ -138,6 +138,114 @@ def calculate_d12a(row):
     else:
         return 0.00
 
-df_d['D12A'] = df.apply(calculate_d12a, axis=1)
+    df_d['D12A'] = df.apply(calculate_d12a, axis=1)
+
+hw1 = df_d['D3'] - df_d['D10'] + df_d['D14A'] - np.maximum(df_d['D6'], df_d['D9'], df_d['D11'])
+
+
+
+#D12B-Berechnung
+# Bedingungen für HW1, HW2 und HW3
+df_d['HW1'] = df_d['D3'] - df_d['D10'] + df_d['D14A'] - np.maximum(df_d['D6'], df_d['D9'], df_d['D11'])
+bedingung_hw2_1 = df_c['C21'].str[18] == 'Y'
+bedingung_hw2_2 = df_c['C27'].isin(['01', '90'])
+df_c['HW2'] = df_c[bedingung_hw2_1 & bedingung_hw2_2]['C19'].sum()
+bedingung_hw3_1 = (df_c['C21'].str[10] == 'N') & (df_c['C21'].str[18] == 'N')
+bedingung_hw3_2 = df_c['C27'] == '90'
+bedingung_hw3_3 = df_c['C27'] == '20'
+df_c['HW3'] = df_c[(bedingung_hw3_1 & bedingung_hw3_2) | bedingung_hw3_3]['C19'].sum()
+
+# Drei potenzielle Ergebniswerte
+result_1 = df_d['HW1'] / df_d['D12A'].replace(0, np.inf)
+denom_hw3 = (df_d['D6'] + df_d['D9']) / df_c['HW3'].replace(0, np.inf)
+result_2 = np.where(denom_hw3 > 0, df_c['HW2'] / denom_hw3, df_c['HW2'])
+result_3 = df_a['A9'] * df_c['C5'] / (df_d['D6'] + df_d['D9'] + df_d['D12A']).replace(0, np.inf)
+
+# Die Bedingung für die Institute
+institut_bedingung = df_a['A3'].isin(['10', '20']) & df_a['A8'].notna()
+
+# Das geringste positive Ergebnis auswählen
+df_d['D12B'] = np.where(
+    institut_bedingung,
+    np.fmin(np.fmin(result_1, result_2), result_3),
+    0.00
+)
+
+# Negative Werte auf 0 setzen
+df_d['D12B'] = np.where(df_d['RESULT'] < 0, 0.00, df_d['RESULT'])
+
+#HW4-Berechnung
+bedingung_hw4_1 = df_c['C21'].str[10] == 'Y'  # Position 11 ist 'Y'
+bedingung_hw4_2 = df_c['C27'].isin(['01', '90'])
+
+df_c['HW4'] = df_c[bedingung_hw4_1 & bedingung_hw4_2]['C19'].sum()
+
+#HW5-Berechnung
+# Bedingungen für HW5
+bedingung_hw5_1 = (df_c['C21'].str[10] == 'N') & (df_c['C27'] == '90')
+bedingung_hw5_2 = df_c['C27'] == '20'
+
+# Summieren der kreditorischen Kontosalden basierend auf den Bedingungen
+df_c['HW5'] = df_c[bedingung_hw5_1 | bedingung_hw5_2]['C19'].sum()
+
+# Hauptbedingung für Institute
+bedingung_institut = df_a['A3'].isin(['10', '20'])
+
+# Bedingung für Feld C21
+bedingung_c21 = df_c['C21'].str[10] == 'Y'
+
+# Bedingung, dass HW1 das Produkt aus A6 und C5 übersteigt
+bedingung_hw1 = df_d['HW1'] > df_a['A6'] * df_c['C5']
+
+# Drei potenzielle Ergebniswerte
+result_1 = df_d['HW1'] / (df_d['D12A'] * df_d['D12B']).replace(0, np.inf)
+denom_hw5 = (df_d['D6'] + df_d['D9']) / df_c['HW5'].replace(0, np.inf)
+result_2 = np.where(denom_hw5 > 0, df_c['HW4'] / denom_hw5, df_c['HW4'])
+result_3 = df_a['A7'] * df_c['C5'] / (df_d['D6'] + df_d['D9'] + df_d['D12A'] + df_d['D12B']).replace(0, np.inf)
+
+# Das geringste positive Ergebnis auswählen, wenn alle Bedingungen erfüllt sind
+df_d['D12C'] = np.where(
+    bedingung_institut & bedingung_c21 & bedingung_hw1,
+    np.fmin(np.fmin(result_1, result_2), result_3),
+    0.00
+)
+
+# Negative Werte auf 0 setzen
+df_d['D12C'] = np.where(df_d['D12C'] < 0, 0.00, df_d['D12C'])
+# Bedingung für Institute
+bedingung_institut_d13 = df_a['A3'].isin(['01', '10'])
+
+# Berechnung für D13
+df_d['D13'] = np.where(
+    bedingung_institut_d13,
+    df_d['D12A'] + df_d['D12B'] + df_d['D12C'],
+    0.00
+)
+
+
+# Bedingung für Institute
+bedingung_institut_d14 = df_a['A3'].isin(['10', '20'])
+
+# Bedingung für debitorische Kontosalden
+bedingung_debitorisch = df_c['C19'] < 0
+
+# Berechnung für D14A -> Könnte nicht ganz richtig sein...
+df_d['D14A'] = np.where(
+    bedingung_institut_d14,
+    df_c[bedingung_debitorisch]['C19'].sum(),
+    0.00
+)
+# Bedingung für Feld C23
+bedingung_c23 = df_c['C23'].notnull() & (df_c['C23'] != '')
+
+# Bedingung für kreditorische Kontosalden
+bedingung_kreditorisch = df_c['C19'] > 0
+
+# Berechnung für D15
+df_d['D15'] = np.where(
+    bedingung_c23 & bedingung_kreditorisch,
+    df_c[bedingung_c23 & bedingung_kreditorisch]['C19'].sum(),
+    0.00
+)
 
 print(df_a.info())
