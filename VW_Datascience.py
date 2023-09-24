@@ -1,21 +1,50 @@
 import pandas
 import numpy as np
 
+
 dataframe_a = pandas.read_csv('A.csv', sep=',', header=0)
 dataframe_b = pandas.read_csv('B.csv', sep=',', header=0)
 dataframe_c = pandas.read_csv('C.csv', sep=',', header=0)
 dataframe_d = pandas.read_csv('D.csv', sep=',', header=0)
 dataframe_e = pandas.read_csv('E.csv', sep=',', header=0)
 dataframe_a_b_c = pandas.read_csv('A_B_C.csv', sep=',', header=0)
-dataframe_d['D1'] = 'D'
-dataframe_b["B1"] = "B"
-dataframe_c["C1"] = "C"
+
+def set_C27_value(row):
+    # Wert: 90 - Ohne Ausschluss
+    if all(row['B14'] == 'N') and all(row['C20'] == 'N'):
+        return '90'
+
+    # Wert: 01 - Ausschluss nur nach EinSiG
+    if any(row['B14'][0:15] == 'Y') and all(row['B14'][15:50] == 'N') and all(row['C20'][10:50] == 'N'):
+        return '01'
+    elif any(row['C20'][0:10] == 'Y') and all(row['C20'][10:50] == 'N') and all(row['B14'][15:50] == 'N'):
+        return '01'
+
+    # Wert: 20 - Ausschluss nur nach ESF-Statut
+    if any(row['B14'][30:50] == 'Y') and all(row['B14'][0:30] == 'N') and all(row['C20'][0:30] == 'N'):
+        return '20'
+    elif any(row['C20'][30:50] == 'Y') and all(row['C20'][0:30] == 'N') and all(row['B14'][0:30] == 'N'):
+        return '20'
+
+    # Wert: 11 - Ausschluss "Bagatellgrenze" nach EinSiG und ESF-Statut
+    if all(row['C20'][1:49] == 'N') and row['C20'][49] == 'Y':
+        return '11'
+
+    # Wert: 10 - Ausschluss nach EinSiG und ESF-Statut (alle anderen Fälle)
+    return '10'
+
+# Anwenden der Funktion auf den DataFrame
+dataframe_c['C27'] = dataframe_c.apply(set_C27_value, axis=1)
+
+
 # drop all values from dataframe_d
-dataframe_d = dataframe_d.iloc[0:0]
+#dataframe_d = dataframe_d.iloc[0:0]
 # kundennummer bei B2 und C2A verbinde dort nicht alle C2A sind in B2 enthalten
 dataframe_b['B2'] = dataframe_b['B2'].astype(str)
 dataframe_c['C2A'] = dataframe_c['C2A'].astype(str)
-
+dataframe_d['D1'] = 'D'
+dataframe_b["B1"] = "B"
+dataframe_c["C1"] = "C"
 
 def generate_random_data():
     global dataframe_b
@@ -45,7 +74,7 @@ def generate_random_data():
 def save_new_dataframes():
     dataframe_b.to_csv('B.csv', index=False)
     dataframe_c.to_csv('C.csv', index=False)
-    dataframe_b_c.to_csv('B_C.csv', index=False)
+    #dataframe_b_c.to_csv('B_C.csv', index=False)
     dataframe_a_b_c.to_csv('A_B_C.csv', index=False)
 
 
@@ -254,7 +283,6 @@ def compute_D12A_grouped(group, df_d):
 dataframe_a_b_c.groupby('B2').apply(compute_D12A_grouped, dataframe_d)
 
 
-
 ########################## D12B #############################
 def compute_D12B_grouped(group, df_d):
     D12B_value = 0.00
@@ -280,7 +308,7 @@ def compute_D12B_grouped(group, df_d):
         C5_value = group['C5'].iloc[0]
 
         # Berechne die drei möglichen Werte für D12B
-        value1 = HW1/D12A_value
+        value1 = HW1 / D12A_value
         value2 = HW2 / (D6_value + D9_value / HW3) if HW3 != 0 and (D6_value + D9_value / HW3) > 0 else HW2
         value3 = A9_value * C5_value / (D6_value + D9_value + D12A_value)
 
@@ -289,8 +317,134 @@ def compute_D12B_grouped(group, df_d):
 
     df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12B'] = D12B_value
 
+
 dataframe_a_b_c.groupby('B2').apply(compute_D12B_grouped, dataframe_d)
+
+########################## D12C #############################
+def compute_D12C_grouped(group, df_d):
+    D12C_value = 0.00
+
+    # Berechne HW4
+    HW4 = group[(group['C27'].isin(['01', '90'])) & (group['C21'].str[10] == 'Y')]['C19'].sum()
+
+    # Berechne HW5
+    HW5_1 = group[(group['C27'] == '90') & (group['C21'].str[10] == 'N')]['C19'].sum()
+    HW5_2 = group[group['C27'] == '20']['C19'].sum()
+    HW5 = HW5_1 + HW5_2
+
+    # Berechne HW1
+    wert1 = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D3'].iloc[0]
+    wert2 = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D10'].iloc[0]
+    wert3 = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D14A'].iloc[0]
+    wert4 = max(df_d.loc[df_d['D2'] == group['B2'].iloc[0], ['D6', 'D9', 'D11']].iloc[0])
+    HW1 = wert1 - wert2 + wert3 - wert4
+
+    if str(group['A3'].iloc[0]) in ["10", "20"] and any(group['C21'].str[10] == 'Y') and HW1 < int(group['A6C'].iloc[0]) * group['C5'].sum(): #welcher c5 wert soll genommen werden
+        # Werte für die Berechnung
+        D12A_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12A'].iloc[0]
+        D12B_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12B'].iloc[0]
+        D6_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D6'].iloc[0]
+        D9_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D9'].iloc[0]
+        A6_value = group['A6C'].iloc[0]
+        C5_value = group['C5'].iloc[0]
+        A7_value = group['A7'].iloc[0]
+        
+        wert2 = HW4 / ((D6_value + D9_value) / HW5) if (D6_value + D9_value) / HW5 > 0 else HW4
+        wert3 = A7_value * C5_value / (D6_value + D9_value + D12A_value + D12B_value) 
+
+        # Setze D12C auf den kleinsten Wert
+        D12C_value = min(wert1, wert2, wert3)
+        if D12C_value < 0:
+            D12C_value = 0.00
+        
+
+    
+    df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12C'] = D12C_value
+
+
+
+dataframe_a_b_c.groupby('B2').apply(compute_D12C_grouped, dataframe_d)
+
+
+########################## D13 #############################
+
+
+def compute_D13_grouped(group, df_d):
+    D13_value = 0.00
+    if str(group['A3'].iloc[0]) in ["10", "20"]:
+        D12A_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12A'].iloc[0]
+        D12B_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12B'].iloc[0]
+        D12C_value = df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D12C'].iloc[0]
+        D13_value = D12A_value + D12B_value + D12C_value
+    df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D13'] = D13_value
+
+dataframe_a_b_c.groupby('B2').apply(compute_D13_grouped, dataframe_d)
+
+########################## D15 #############################
+
+def compute_D15_grouped(group, df_d):
+    D15_value = 0.00
+    valid_entries = group[pandas.notnull(group['C23'])]
+    D15_value = valid_entries['C19'].sum()
+    df_d.loc[df_d['D2'] == group['B2'].iloc[0], 'D15'] = D15_value
+
+dataframe_a_b_c.groupby('B2').apply(compute_D15_grouped, dataframe_d)
+
+
 
 
 ###############################################################
 dataframe_d.to_csv('D.csv', index=False)
+
+
+###################### Dataframe E ############################
+# Erstelle ein leeres DataFrame für E
+dataframe_e = pandas.DataFrame(index=[0])
+
+# Setze die Werte für die Spalten in E
+dataframe_e.at[0, 'E1'] = 'E'
+# E2 wird freigelassen, wie du erwähnt hast
+dataframe_e.at[0, 'E3'] = dataframe_d['D3'].sum()
+dataframe_e.at[0, 'E4'] = dataframe_d['D4'].sum()
+dataframe_e.at[0, 'E5'] = dataframe_d['D5'].sum()
+dataframe_e.at[0, 'E6'] = dataframe_d['D6'].sum()
+dataframe_e.at[0, 'E7'] = dataframe_d['D7'].sum()
+dataframe_e.at[0, 'E8'] = dataframe_d['D8'].sum()
+dataframe_e.at[0, 'E9'] = dataframe_d['D9'].sum()
+dataframe_e.at[0, 'E10'] = dataframe_d['D10'].sum()
+dataframe_e.at[0, 'E11'] = dataframe_d['D11'].sum()
+dataframe_e.at[0, 'E12A'] = dataframe_d['D12A'].sum()
+dataframe_e.at[0, 'E12B'] = dataframe_d['D12B'].sum()
+dataframe_e.at[0, 'E12C'] = dataframe_d['D12C'].sum()
+dataframe_e.at[0, 'E13'] = dataframe_d['D13'].sum()
+dataframe_e.at[0, 'E14'] = dataframe_d['D14A'].sum()
+dataframe_e.at[0, 'E15'] = dataframe_d['D15'].sum()
+
+
+dataframe_e.to_csv('E.csv', index=False)
+
+
+#datei schreiben:
+with open("output.txt", "w") as file:
+    file.write("\t".join(dataframe_a.iloc[0].astype(str)) + "\n")
+    # Gruppieren nach allen B-Spalten
+    grouped = dataframe_a_b_c.groupby(list(dataframe_a_b_c.columns[dataframe_a_b_c.columns.str.startswith('B')]))
+    for _, group in grouped:
+        # Schreibe die B-Werte in die Datei
+        b_values = group.iloc[0][dataframe_a_b_c.columns.str.startswith('B')].astype(str)
+        file.write(','.join(b_values) + '\n')
+
+             # Schreibe die C-Werte in die Datei
+        for _, row in group.iterrows():
+            c_values = row[dataframe_a_b_c.columns.str.startswith('C')].astype(str)
+            file.write(','.join(c_values) + '\n')
+
+        b2_value = group['B2'].iloc[0]
+        d_row = dataframe_d[dataframe_d['D2'] == b2_value]
+        d_values = d_row.iloc[0].astype(str)
+        file.write(','.join(d_values) + '\n')
+        
+        
+    for _, row in dataframe_e.iterrows():
+        e_values = row.astype(str)
+        file.write(','.join(e_values) + '\n')
