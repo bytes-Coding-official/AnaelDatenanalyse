@@ -1,0 +1,30 @@
+def set_C27_value(row):
+    # Wert: 90 - Ohne Ausschluss
+    
+    #finde die reihe aus B wo B2 = C2A
+    #wenn B14 = N und C20 = N dann 90
+    
+    b_row_14 = dataframe_b.loc[dataframe_b['B2'] == row['C2A'], "B14"]
+    
+    if all(b_row_14 == 'N') and all(row['C20'] == 'N'):
+        return '90'
+
+    # Wert: 01 - Ausschluss nur nach EinSiG
+    if any(b_row_14[0:15].count("Y") >0) and all(c=="N" for c_values in b_row_14[15:50]) and all(c == 'N' for c in row['C20'][10:50]):
+        return '01'
+    elif row['C20'][0:10].count('Y') > 0 and all(c == 'N' for c in row['C20'][10:50]) and all(c == 'N' for c in b_row_14[15:50]):
+        # do something
+        return '01'
+
+    # Wert: 20 - Ausschluss nur nach ESF-Statut
+    if any(b_row_14[30:50].count("Y") >0) and all(c=="N" for c in b_row_14[0:30]) and all(c == "N" for c in row['C20'][0:30]):
+        return '20'
+    elif any(row['C20'][30:50].count("Y") >0) and all(c== 'N' for c in row['C20'][0:30] ) and all(c == 'N' for c in b_row_14[0:30] ):
+        return '20'
+
+    # Wert: 11 - Ausschluss "Bagatellgrenze" nach EinSiG und ESF-Statut
+    if all(c == 'N' for c in row['C20'][1:49] ) and row['C20'][49] == 'Y':
+        return '11'
+
+    # Wert: 10 - Ausschluss nach EinSiG und ESF-Statut (alle anderen Fälle)
+    return '10'
