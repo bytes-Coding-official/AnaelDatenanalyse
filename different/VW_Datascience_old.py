@@ -5,7 +5,7 @@ import numpy as np
 #B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12,B13,B14,B15,B16
 #C1,C2A,C2B,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16,C17,C18,C19,C20,C21,C22,C23,C24,C25,C26,C27
 
-df_a = pd.read_csv('A.csv', sep=',', header=0)
+df_a = pd.read_csv('../files/A.csv', sep=',', header=0)
 df_b = pd.read_csv('B.csv', sep=',', header=0)
 df_c = pd.read_csv('C.csv', sep=',', header=0)
 df_d = pd.read_csv('D.csv', sep=',', header=0)
