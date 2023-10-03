@@ -10,6 +10,9 @@ files
 .idea/**/shelf
 .idea
 *.iml
+files.*
+/files/*
+files/*
 
 # AWS User-specific
 .idea/**/aws.xml
